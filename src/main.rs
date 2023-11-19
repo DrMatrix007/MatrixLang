@@ -35,7 +35,7 @@ fn main() {
         let block = ctx.append_basic_block(func, "main");
         builder.position_at_end(block);
         // builder.position_at(block, &block.get_first_instruction().unwrap());
-        let v = expr.to_value(&ctx, &builder);
+        let v = expr.to_value(&ctx, &builder).ok();
         let v = v.as_ref();
         builder.build_return(v.map(|x| x.as_ref())).unwrap();
 
