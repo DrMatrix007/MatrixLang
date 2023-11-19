@@ -1,8 +1,4 @@
-#[derive(Debug)]
-pub struct Error {
-    line: usize,
-    error: MLangError,
-}
+use crate::tokens::Token;
 
 #[derive(Debug)]
 pub enum MLangError {
@@ -11,5 +7,7 @@ pub enum MLangError {
 
 #[derive(Debug)]
 pub enum TokenError {
-    UnexpectedToken(String),
+    NotValidToken(String),
+    UnexpectedToken(Token),
+    MissingToken,
 }

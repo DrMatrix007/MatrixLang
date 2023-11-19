@@ -1,4 +1,4 @@
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NumberLiteral {
     pub num: std::string::String,
 }
@@ -8,7 +8,7 @@ impl NumberLiteral {
         Self { num }
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StringLiteral {
     pub inner: std::string::String,
 }

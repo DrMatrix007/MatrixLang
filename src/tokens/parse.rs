@@ -1,98 +1,11 @@
-use crate::{
-    error::{MLangError, TokenError},
-    literals::{self, NumberLiteral, StringLiteral},
+use crate::error::{MLangError, TokenError};
+
+use super::{
+    literals::{NumberLiteral, StringLiteral},
+    Identifier, Operator, Token,
 };
 
-#[derive(Debug)]
-pub enum Token {
-    Operator(Operator),
-    Identifier(Identifier),
-    StringLiteral(literals::StringLiteral),
-    NumberLiteral(literals::NumberLiteral),
-    Keyword(Keyword),
-}
-impl Into<Token> for Operator {
-    fn into(self) -> Token {
-        Token::Operator(self)
-    }
-}
-impl Into<Token> for Identifier {
-    fn into(self) -> Token {
-        Token::Identifier(self)
-    }
-}
-
-impl Into<Token> for literals::StringLiteral {
-    fn into(self) -> Token {
-        Token::StringLiteral(self)
-    }
-}
-
-impl Into<Token> for literals::NumberLiteral {
-    fn into(self) -> Token {
-        Token::NumberLiteral(self)
-    }
-}
-
-impl Into<Token> for Keyword {
-    fn into(self) -> Token {
-        Token::Keyword(self)
-    }
-}
-#[derive(Debug)]
-pub enum Operator {
-    ParenLeft,
-    ParenRight,
-    BraceLeft,
-    BraceRight,
-    Comma,
-    Dot,
-    Minus,
-    Plus,
-    Div,
-    Mul,
-    Smicolon,
-    Not,
-    NotEqual,
-    Equal,
-    EqualEqual,
-    Greater,
-    GreaterEq,
-    Smaller,
-    SmallerEq,
-}
-
-#[derive(Debug)]
-pub struct Identifier {
-    pub name: String,
-}
-
-impl Identifier {
-    pub fn new(name: String) -> Self {
-        Self { name }
-    }
-}
-#[derive(Debug)]
-pub enum Keyword {
-    And,
-    Class,
-    Else,
-    False,
-    Function,
-    For,
-    If,
-    Null,
-    Or,
-    Print,
-    Return,
-    Super,
-    This,
-    True,
-    Var,
-    While,
-}
-
-pub fn tokenize(data: &str) -> Result<Vec<Token>, MLangError> {
+pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
     let mut ans = vec![];
     let mut iter = data.chars().peekable();
     let mut current_token;
@@ -188,11 +101,7 @@ pub fn tokenize(data: &str) -> Result<Vec<Token>, MLangError> {
             ' ' | '\n' => {
                 continue;
             }
-            c => {
-                return Err(MLangError::TokenError(TokenError::UnexpectedToken(
-                    c.into(),
-                )))
-            }
+            c => return Err(MLangError::TokenError(TokenError::NotValidToken(c.into()))),
         };
         ans.push(current_token);
     }
