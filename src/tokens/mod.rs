@@ -103,16 +103,38 @@ pub enum Keyword {
     Class,
     Else,
     False,
-    Function,
     For,
     If,
     Null,
     Or,
-    Print,
     Return,
     Super,
-    This,
     True,
-    Var,
+    Let,
     While,
+    Fn,
+}
+
+impl TryFrom<&str> for Keyword {
+    type Error = &'static str;
+
+    fn try_from(value: &str) -> Result<Self, Self::Error> {
+        match value {
+            "and" => Ok(Keyword::And),
+            "class" => Ok(Keyword::Class),
+            "else" => Ok(Keyword::Else),
+            "false" => Ok(Keyword::False),
+            "for" => Ok(Keyword::For),
+            "if" => Ok(Keyword::If),
+            "null" => Ok(Keyword::Null),
+            "or" => Ok(Keyword::Or),
+            "return" => Ok(Keyword::Return),
+            "super" => Ok(Keyword::Super),
+            "true" => Ok(Keyword::True),
+            "let" => Ok(Keyword::Let),
+            "while" => Ok(Keyword::While),
+            "fn" => Ok(Keyword::Fn),
+            _ => Err("Invalid keyword"),
+        }
+    }
 }

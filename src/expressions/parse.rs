@@ -2,10 +2,21 @@ use std::{iter::Peekable, marker::PhantomData};
 
 use crate::{
     error::{MLangError, TokenError},
-    tokens::{Operator, Token},
+    tokens::{Keyword, Operator, Token},
 };
 
-use super::{BinaryExpression, Expression, UnaryExpression};
+use super::{BinaryExpression, Expression, UnaryExpression, VariableDecleration};
+
+pub fn parse_file<'a>(
+    tokens: impl Iterator<Item = &'a Token>,
+) -> Result<Vec<Expression>, MLangError> {
+    let mut tokens = tokens.peekable();
+    let mut ans = Vec::new();
+    while let Some(_) = tokens.peek() {
+        ans.push(_parse(&mut tokens)?);
+    }
+    Ok(ans)
+}
 
 pub fn parse_expression<'a>(
     tokens: impl Iterator<Item = &'a Token>,
@@ -23,7 +34,7 @@ pub fn parse_expression<'a>(
 fn _parse<'a, I: Iterator<Item = &'a Token>>(
     i: &mut core::iter::Peekable<I>,
 ) -> Result<Expression, MLangError> {
-    Assignment::parse(i)
+    Equality::parse(i)
 }
 struct ParserWrapper<T: Parser>(PhantomData<T>);
 impl<T: Parser> Parser for ParserWrapper<T> {
@@ -53,18 +64,6 @@ impl<P: ParseLayer> Parser for P {
         tokens: &mut core::iter::Peekable<I>,
     ) -> Result<Expression, MLangError> {
         Self::parse_layer(tokens)
-    }
-}
-
-struct Assignment;
-
-impl ParseLayer for Assignment {
-    type NextLayer = Equality;
-
-    fn parse_layer<'a, I: Iterator<Item = &'a Token>>(
-        tokens: &mut core::iter::Peekable<I>,
-    ) -> Result<Expression, MLangError> {
-        parse_binary_expression(tokens, &[Operator::Equal], Self::NextLayer::parse)
     }
 }
 
@@ -172,6 +171,97 @@ impl Parser for Primary {
                     return Err(MLangError::TokenError(TokenError::MissingToken));
                 }
                 v
+            }
+            Some(Token::Keyword(Keyword::Let)) => {
+                let name = match tokens.next() {
+                    Some(Token::Identifier(var_name)) => var_name,
+                    Some(t) => {
+                        return Err(MLangError::TokenError(TokenError::UnexpectedToken(
+                            t.clone(),
+                        )))
+                    }
+                    None => return Err(MLangError::TokenError(TokenError::MissingToken)),
+                };
+                let _eq = match tokens.next() {
+                    Some(Token::Operator(op @ Operator::Equal)) => op,
+                    Some(t) => {
+                        return Err(MLangError::TokenError(TokenError::UnexpectedToken(
+                            t.clone(),
+                        )))
+                    }
+                    None => return Err(MLangError::TokenError(TokenError::MissingToken)),
+                };
+                let v = _parse(tokens)?;
+                Ok(Expression::VariableDecleration(VariableDecleration {
+                    var_name: name.clone(),
+                    value: Box::new(v),
+                }))
+            }
+            Some(Token::Keyword(Keyword::Fn)) => {
+                let name = match tokens.next() {
+                    Some(Token::Identifier(name)) => name,
+                    Some(t) => {
+                        return Err(MLangError::TokenError(TokenError::UnexpectedToken(
+                            t.clone(),
+                        )))
+                    }
+                    None => return Err(MLangError::TokenError(TokenError::MissingToken)),
+                };
+
+                // (
+                match tokens.next() {
+                    Some(Token::Operator(Operator::ParenLeft)) => name,
+                    Some(t) => {
+                        return Err(MLangError::TokenError(TokenError::UnexpectedToken(
+                            t.clone(),
+                        )))
+                    }
+                    None => return Err(MLangError::TokenError(TokenError::MissingToken)),
+                };
+                //TODO: read args
+
+                // )
+                match tokens.next() {
+                    Some(Token::Operator(Operator::ParenRight)) => name,
+                    Some(t) => {
+                        return Err(MLangError::TokenError(TokenError::UnexpectedToken(
+                            t.clone(),
+                        )))
+                    }
+                    None => return Err(MLangError::TokenError(TokenError::MissingToken)),
+                };
+
+                // {
+                match tokens.next() {
+                    Some(Token::Operator(Operator::BraceLeft)) => name,
+                    Some(t) => {
+                        return Err(MLangError::TokenError(TokenError::UnexpectedToken(
+                            t.clone(),
+                        )))
+                    }
+                    None => return Err(MLangError::TokenError(TokenError::MissingToken)),
+                };
+                let mut vec = Vec::new();
+                while tokens.peek() != Some(&&Token::Operator(Operator::BraceRight)) {
+                    vec.push(_parse(tokens)?);
+                    match tokens.next() {
+                        Some(Token::Operator(Operator::Semicolon)) => {}
+
+                        Some(t) => {
+                            return Err(MLangError::TokenError(TokenError::UnexpectedToken(
+                                t.clone(),
+                            )))
+                        }
+                        None => return Err(MLangError::TokenError(TokenError::MissingToken)),
+                    }
+                }
+                tokens.next();
+                return Ok(Expression::FunctionDecleration(
+                    super::function::FunctionDecleration {
+                        name: name.clone(),
+                        vals: vec,
+                    },
+                ));
             }
             Some(t) => Err(MLangError::TokenError(TokenError::UnexpectedToken(
                 t.clone(),

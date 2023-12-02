@@ -1,0 +1,7 @@
+fn main() {
+ let x = 1;
+}
+
+fn test() {
+let y = 69;
+}

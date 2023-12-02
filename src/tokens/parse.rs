@@ -2,7 +2,7 @@ use crate::error::{MLangError, TokenError};
 
 use super::{
     literals::{NumberLiteral, StringLiteral},
-    Identifier, Operator, Token,
+    Identifier, Keyword, Operator, Token,
 };
 
 pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
@@ -21,6 +21,7 @@ pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
             '+' => Operator::Plus.into(),
             '*' => Operator::Mul.into(),
             '/' => Operator::Div.into(),
+            ';' => Operator::Semicolon.into(),
             '!' => {
                 if let Some(&'=') = iter.peek() {
                     iter.next();
@@ -78,8 +79,11 @@ pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
                             None
                         }
                     }))
-                    .collect();
-                Identifier::new(s).into()
+                    .collect::<String>();
+                match Keyword::try_from(s.as_str()) {
+                    Ok(key) => key.into(),
+                    Err(_) => Identifier::new(s).into(),
+                }
             }
             '"' => {
                 let s = std::iter::from_fn(|| {
@@ -94,9 +98,12 @@ pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
                         None
                     }
                 })
-                .collect();
+                .collect::<String>();
 
-                StringLiteral::new(s).into()
+                match Keyword::try_from(s.as_str()) {
+                    Ok(data) => Token::Keyword(data),
+                    Err(_) => StringLiteral::new(s).into(),
+                }
             }
             ' ' | '\n' => {
                 continue;
