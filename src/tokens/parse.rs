@@ -57,7 +57,7 @@ pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
             c @ ('0'..='9') => {
                 let s = core::iter::once(c)
                     .chain(std::iter::from_fn(|| {
-                        let current = iter.peek().map(|c| *c);
+                        let current = iter.peek().copied();
                         if let Some(c @ ('0'..='9' | '.')) = current {
                             iter.next();
                             Some(c)
@@ -71,7 +71,7 @@ pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
             c @ ('a'..='z' | 'A'..='Z') => {
                 let s = core::iter::once(c)
                     .chain(std::iter::from_fn(|| {
-                        let current = iter.peek().map(|c| *c);
+                        let current = iter.peek().copied();
                         if let Some(c @ ('a'..='z' | 'A'..='Z' | '0'..='9')) = current {
                             iter.next();
                             Some(c)
@@ -88,15 +88,7 @@ pub fn parse_tokens(data: &str) -> Result<Vec<Token>, MLangError> {
             '"' => {
                 let s = std::iter::from_fn(|| {
                     let current = iter.next();
-                    if let Some(c) = current {
-                        if c != '"' {
-                            Some(c)
-                        } else {
-                            None
-                        }
-                    } else {
-                        None
-                    }
+                    current.filter(|&c| c != '"')
                 })
                 .collect::<String>();
 

@@ -12,7 +12,7 @@ pub fn parse_file<'a>(
 ) -> Result<Vec<Expression>, MLangError> {
     let mut tokens = tokens.peekable();
     let mut ans = Vec::new();
-    while let Some(_) = tokens.peek() {
+    while tokens.peek().is_some() {
         ans.push(_parse(&mut tokens)?);
     }
     Ok(ans)
@@ -256,12 +256,15 @@ impl Parser for Primary {
                     }
                 }
                 tokens.next();
-                return Ok(Expression::FunctionDecleration(
+                Ok(Expression::FunctionDecleration(
                     super::function::FunctionDecleration {
                         name: name.clone(),
                         vals: vec,
                     },
-                ));
+                ))
+            }
+            Some(Token::Keyword(Keyword::Return)) => {
+                Ok(Expression::Return)
             }
             Some(t) => Err(MLangError::TokenError(TokenError::UnexpectedToken(
                 t.clone(),

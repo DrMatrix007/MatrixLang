@@ -18,6 +18,7 @@ pub enum Expression {
     Identifier(Identifier),
     VariableDecleration(VariableDecleration),
     FunctionDecleration(FunctionDecleration),
+    Return,
 }
 
 impl Display for Expression {
@@ -35,6 +36,9 @@ impl Display for Expression {
             }
             Expression::FunctionDecleration(func) => {
                 write!(f, "function {}", func.name.name)
+            },
+            Expression::Return => {
+                write!(f,"return")
             }
         }
     }

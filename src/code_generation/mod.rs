@@ -1,5 +1,6 @@
 pub mod compiler;
 pub mod values;
+pub mod return_expr;
 
 use inkwell::{
     basic_block::BasicBlock,
@@ -16,7 +17,7 @@ use crate::{
     tokens::{literals::NumberLiteral, Operator},
 };
 
-use self::values::{IntoBasicValue, Value};
+use self::{return_expr::Return, values::{IntoBasicValue, Value}};
 
 pub trait ToValue {
     fn generate_code<'a: 'b, 'b>(
@@ -41,6 +42,7 @@ impl ToValue for Expression {
             Expression::Identifier(_) => todo!(),
             Expression::VariableDecleration(var) => var.generate_code(ctx, module, builder),
             Expression::FunctionDecleration(func) => func.generate_code(ctx, module, builder),
+            Expression::Return => Return.generate_code(ctx,module,builder)
         }
     }
 }

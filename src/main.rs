@@ -3,38 +3,70 @@
 pub mod code_generation;
 pub mod error;
 pub mod expressions;
+pub mod target_compiler;
 pub mod tokens;
 pub mod types;
+
+use std::fs;
 
 use inkwell::context::Context;
 
 use crate::{
     code_generation::ToValue,
     expressions::parse::{parse_expression, parse_file},
+    target_compiler::TargetCompiler,
     tokens::parse::parse_tokens,
 };
 
 fn main() {
-    println!("{:?}", std::env::args());
-    let path = std::env::args().into_iter().nth(1).unwrap();
+
+    let mut args = std::env::args();
+
+    let path = args.nth(1).expect("need to compile file");
+
+    let output_path = args.next().expect("need output file");
+
+    let compiler = TargetCompiler::current_target(inkwell::OptimizationLevel::None).unwrap();
+
+
 
     let lines = std::fs::read_to_string(path).unwrap();
 
     let tokens = parse_tokens(lines.as_str()).unwrap();
 
-    let expression = parse_file(tokens.iter()).unwrap();
+    let expressions = parse_file(tokens.iter()).unwrap();
 
     let ctx = Context::create();
 
+    let builder = ctx.create_builder();
     let module = ctx.create_module("main");
 
-    let builder = ctx.create_builder();
+    // module.set_data_layout(&compiler.machine().get_target_data().get_data_layout());
+    // module.set_triple(compiler.triple());
 
-    let r = expression
-        .iter()
-        .map(|v| v.generate_code(&ctx, &module, &builder))
-        .collect::<Vec<_>>();
-    println!("{:#?}", r);
+
+    // let r = expression
+    //     .iter()
+    //     .map(|v| v.generate_code(&ctx, &module, &builder))
+    //     .collect::<Vec<_>>();
+
+    for expr in expressions {
+        let a = expr.generate_code(&ctx, &module, &builder).unwrap();
+        println!("{a:?}");
+    }
+
+    // println!("{:#?}", module);
+    //
+    // for value in r {
+    //     let value = value.unwrap();
+    //     // println!("{:#?}", value);
+    // }
+
+    let data = compiler.compile(&module).unwrap();
+    
+    fs::write(output_path, data.as_slice()).unwrap();
+    
+
     // let mut string = String::new();
     // loop {
     //     let module = ctx.create_module("inter");

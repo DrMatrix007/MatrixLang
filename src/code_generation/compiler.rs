@@ -19,6 +19,12 @@ impl Compiler {
     }
 }
 
+impl Default for Compiler {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct ModuleCompiler<'a> {
     builder: Builder<'a>,
     module: Module<'a>,

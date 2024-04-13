@@ -10,33 +10,34 @@ pub enum Token {
     StringLiteral(literals::StringLiteral),
     NumberLiteral(literals::NumberLiteral),
     Keyword(Keyword),
+    Return
 }
-impl Into<Token> for Operator {
-    fn into(self) -> Token {
-        Token::Operator(self)
+impl From<Operator> for Token {
+    fn from(val: Operator) -> Self {
+        Token::Operator(val)
     }
 }
-impl Into<Token> for Identifier {
-    fn into(self) -> Token {
-        Token::Identifier(self)
-    }
-}
-
-impl Into<Token> for literals::StringLiteral {
-    fn into(self) -> Token {
-        Token::StringLiteral(self)
+impl From<Identifier> for Token {
+    fn from(val: Identifier) -> Self {
+        Token::Identifier(val)
     }
 }
 
-impl Into<Token> for literals::NumberLiteral {
-    fn into(self) -> Token {
-        Token::NumberLiteral(self)
+impl From<literals::StringLiteral> for Token {
+    fn from(val: literals::StringLiteral) -> Self {
+        Token::StringLiteral(val)
     }
 }
 
-impl Into<Token> for Keyword {
-    fn into(self) -> Token {
-        Token::Keyword(self)
+impl From<literals::NumberLiteral> for Token {
+    fn from(val: literals::NumberLiteral) -> Self {
+        Token::NumberLiteral(val)
+    }
+}
+
+impl From<Keyword> for Token {
+    fn from(val: Keyword) -> Self {
+        Token::Keyword(val)
     }
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
