@@ -1,13 +1,17 @@
-use crate::tokens::parse_tokens;
+use crate::{expressions::parse_expression, tokens::parse_tokens};
 
-
-pub mod tokens;
 pub mod errors;
 pub mod expressions;
+pub mod tokens;
 fn main() {
-    let data = "💀 += +💀";
 
-    println!("{:?}", parse_tokens(data.chars()).collect::<Vec<_>>());
-    
-    
+    let code = include_str!("../code.mal");
+
+    let tokens = parse_tokens(code.chars()).collect::<Vec<_>>();
+
+    println!("{:?}", tokens);
+
+    let expr = parse_expression(&mut tokens.into_iter().peekable());
+
+    println!("{}", expr.unwrap());
 }

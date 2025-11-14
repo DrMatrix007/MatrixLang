@@ -1,23 +1,28 @@
 use std::iter::Peekable;
 
 use crate::{
-    errors::TokenError,
+    errors::{LangError, TokenError},
     tokens::{
-        immediate::Immediate, keyword::Keyword, op::Op, parser::{NumberParser, OpCodeParser, TokenParser, WordParser}
+        identifier::Identifier,
+        immediate::Immediate,
+        keyword::Keyword,
+        op::Op,
+        parsers::{NumberParser, OpCodeParser, TokenParser, WordParser},
     },
 };
 
+pub mod identifier;
 pub mod immediate;
 pub mod keyword;
-pub mod parser;
 pub mod op;
+pub mod parsers;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Token {
-    Identifier(String),
+    Identifier(Identifier),
     Immediate(Immediate),
     Keyword(Keyword),
-    Op(Op)
+    Op(Op),
 }
 
 macro_rules! match_parse {
@@ -29,19 +34,19 @@ macro_rules! match_parse {
                     $t::parse($iter)
                 }),*
 
-                ch => Err(TokenError::UnexpectedChar(ch))
+                ch => Err(LangError::TokenError(TokenError::UnexpectedChar(ch)))
             }
         }
     };
 }
 
+pub type TokenResult = Result<Token, LangError>;
 pub struct TokenParserIter<T: Iterator<Item = char>> {
     data: Peekable<T>,
     finished: bool,
 }
-
 impl<T: Iterator<Item = char>> Iterator for TokenParserIter<T> {
-    type Item = Result<Token, TokenError>;
+    type Item = TokenResult;
 
     fn next(&mut self) -> Option<Self::Item> {
         if self.finished {
@@ -63,7 +68,7 @@ impl<T: Iterator<Item = char>> Iterator for TokenParserIter<T> {
         if token.is_err() {
             self.finished = true;
         }
-        
+
         Some(token)
     }
 }

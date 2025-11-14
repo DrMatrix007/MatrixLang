@@ -3,9 +3,10 @@ use std::iter::Peekable;
 use unic_emoji_char::is_emoji;
 
 use crate::{
-    errors::TokenError,
+    errors::{LangError, TokenError},
     tokens::{
-        Token,
+        Token, TokenResult,
+        identifier::Identifier,
         immediate::{Immediate, Number},
         keyword::Keyword,
         op::Op,
@@ -13,7 +14,7 @@ use crate::{
 };
 
 pub trait TokenParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> Result<Token, TokenError>;
+    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> TokenResult;
 
     fn is_relevant(c: char) -> bool;
 }
@@ -21,33 +22,35 @@ pub trait TokenParser {
 pub struct WordParser;
 
 impl TokenParser for WordParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> Result<Token, TokenError> {
+    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> TokenResult {
         let mut string = String::new();
         while let Some(c) = data.peek() {
-            if c.is_alphabetic() || is_emoji(*c) || *c == '_' {
+            if is_ident_char(*  c, false) {
                 string.push(*c);
                 data.next();
-            } else if c.is_whitespace() {
-                break;
             } else {
-                return Err(TokenError::UnexpectedChar(*c));
+                break;
             }
         }
         match Keyword::try_from(string.as_str()) {
             Ok(keyword) => Ok(Token::Keyword(keyword)),
-            Err(_) => Ok(Token::Identifier(string)),
+            Err(_) => Ok(Token::Identifier(Identifier { name: string })),
         }
     }
 
     fn is_relevant(c: char) -> bool {
-        (c.is_alphabetic() || c == '_' || is_emoji(c)) && !c.is_numeric()
+        is_ident_char(c, true)
     }
+}
+
+fn is_ident_char(c: char, start: bool) -> bool {
+    c.is_alphabetic() || c == '_' || (is_emoji(c) && c.is_ascii()) || (!start && c.is_numeric())
 }
 
 pub struct NumberParser;
 
 impl TokenParser for NumberParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> Result<Token, TokenError> {
+    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> TokenResult {
         let mut num = String::new();
         let mut is_float = false;
         for c in data {
@@ -59,19 +62,19 @@ impl TokenParser for NumberParser {
             } else if c.is_whitespace() {
                 break;
             } else {
-                return Err(TokenError::UnexpectedChar(c));
+                return Err(LangError::TokenError(TokenError::UnexpectedChar(c)));
             }
         }
 
         Ok(Token::Immediate(Immediate::Number(if is_float {
             Number::F32(
                 num.parse()
-                    .map_err(move |_| TokenError::NotValidNumber(num))?,
+                    .map_err(move |_| LangError::TokenError(TokenError::NotValidNumber(num)))?,
             )
         } else {
             Number::I32(
                 num.parse()
-                    .map_err(move |_| TokenError::NotValidNumber(num))?,
+                    .map_err(move |_| LangError::TokenError(TokenError::NotValidNumber(num)))?,
             )
         })))
     }
@@ -84,7 +87,7 @@ impl TokenParser for NumberParser {
 pub struct OpCodeParser;
 
 impl TokenParser for OpCodeParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> Result<Token, TokenError> {
+    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> TokenResult {
         let mut string = String::new();
         let mut res = None;
 
@@ -97,7 +100,6 @@ impl TokenParser for OpCodeParser {
                     break;
                 }
                 data.next();
-
             } else {
                 break;
             }
@@ -105,12 +107,27 @@ impl TokenParser for OpCodeParser {
 
         match res {
             Some(op) => Ok(Token::Op(op)),
-            None => Err(TokenError::NotValidOp(string)),
+            None => Err(LangError::TokenError(TokenError::NotValidOp(string))),
         }
     }
 
     fn is_relevant(c: char) -> bool {
         let c = c.to_ascii_uppercase();
         !c.is_whitespace() && !c.is_ascii_alphanumeric()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use unic_emoji_char::is_emoji;
+
+    #[test]
+    fn test_char() {
+        fn is_ident_char(c: char) -> bool {
+            c.is_alphabetic() || c == '_' || (is_emoji(c) && !c.is_ascii())
+        }
+        assert!(!is_ident_char('*'));
+        assert!(is_ident_char('a'));
+        assert!(is_ident_char('💀'));
     }
 }
