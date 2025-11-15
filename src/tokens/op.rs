@@ -15,11 +15,28 @@ pub enum Op {
     ParenthesesLeft,
     ParenthesesRight,
 
-    SquareParenthesisLeft,   
-    SquareParenthesisRight,  
+    SquareParenthesesLeft,
+    SquareParenthesesRight,
 
-    SquiglyParenthesisLeft,     
-    SquiglyParenthesisRight,    
+    SquiglyParenthesesLeft,
+    SquiglyParenthesesRight,
+
+    Comma,
+}
+
+impl Op {
+    pub fn get_closing_parentheses(&self) -> Option<Op> {
+        match self {
+            Op::ParenthesesLeft => Some(Op::ParenthesesRight),
+            Op::SquareParenthesesLeft => Some(Op::SquareParenthesesRight),
+            Op::SquiglyParenthesesLeft => Some(Op::SquiglyParenthesesRight),
+            _ => None,
+        }
+    }
+
+    pub fn can_be_unary(&self) -> bool {
+        matches!(self, Op::Add | Op::Sub)
+    }
 }
 
 impl Display for Op {
@@ -28,9 +45,9 @@ impl Display for Op {
     }
 }
 
-impl Into<String> for Op {
-    fn into(self) -> String {
-        match self {
+impl From<Op> for String {
+    fn from(val: Op) -> Self {
+        match val {
             Op::Add => "+".into(),
             Op::Sub => "-".into(),
             Op::Mul => "*".into(),
@@ -44,10 +61,12 @@ impl Into<String> for Op {
             Op::ParenthesesLeft => "(".into(),
             Op::ParenthesesRight => ")".into(),
 
-            Op::SquareParenthesisLeft => "[".into(),
-            Op::SquareParenthesisRight => "]".into(),
-            Op::SquiglyParenthesisLeft => "{".into(),
-            Op::SquiglyParenthesisRight => "}".into(),
+            Op::SquareParenthesesLeft => "[".into(),
+            Op::SquareParenthesesRight => "]".into(),
+            Op::SquiglyParenthesesLeft => "{".into(),
+            Op::SquiglyParenthesesRight => "}".into(),
+
+            Op::Comma => ",".into(),
         }
     }
 }
@@ -70,11 +89,13 @@ impl TryFrom<&str> for Op {
             "(" => Ok(Op::ParenthesesLeft),
             ")" => Ok(Op::ParenthesesRight),
 
-            "[" => Ok(Op::SquareParenthesisLeft),
-            "]" => Ok(Op::SquareParenthesisRight),
+            "[" => Ok(Op::SquareParenthesesLeft),
+            "]" => Ok(Op::SquareParenthesesRight),
 
-            "{" => Ok(Op::SquiglyParenthesisLeft),
-            "}" => Ok(Op::SquiglyParenthesisRight),
+            "{" => Ok(Op::SquiglyParenthesesLeft),
+            "}" => Ok(Op::SquiglyParenthesesRight),
+
+            "," => Ok(Op::Comma),
 
             _ => Err(()),
         }

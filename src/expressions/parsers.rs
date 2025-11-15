@@ -4,7 +4,9 @@ use crate::{
     errors::{FunctionError, LangError},
     expressions::{
         Expression,
-        binary_expression_parser::parse_binary_expr,
+        binary_expression_parser::{
+            ExpressionParser, ExpressionParserWithSubLayer, ExpressionResult,
+        },
         expression_types::{
             CallExpression, FunctionDeclerationExpression, IdentifierExpression,
             ImmediateExpression, UnaryExpression,
@@ -13,79 +15,70 @@ use crate::{
     },
     tokens::{Token, TokenResult, keyword::Keyword, op::Op},
 };
-pub type ExpressionResult = Result<Expression, LangError>;
-pub trait ExpressionParser {
-    fn parse<T: Iterator<Item = TokenResult>>(tokens: &mut Peekable<T>) -> ExpressionResult;
-}
 
-pub trait ExpressionParserWithSubLayer {
-    type SubLayer: ExpressionParser;
-
-    fn parse_layered<T: Iterator<Item = TokenResult>>(tokens: &mut Peekable<T>)
-    -> ExpressionResult;
-
-    fn parse_sub<T: Iterator<Item = TokenResult>>(tokens: &mut Peekable<T>) -> ExpressionResult {
-        Self::SubLayer::parse(tokens)
-    }
-}
-impl<P: ExpressionParserWithSubLayer> ExpressionParser for P {
-    fn parse<T: Iterator<Item = TokenResult>>(tokens: &mut Peekable<T>) -> ExpressionResult {
-        Self::parse_layered(tokens)
-    }
-}
-
-pub struct AssignsBinaryExpressionParser;
-impl ExpressionParserWithSubLayer for AssignsBinaryExpressionParser {
-    type SubLayer = AddSubBinaryExpressionParser;
-
-    fn parse_layered<T: Iterator<Item = TokenResult>>(
-        tokens: &mut Peekable<T>,
-    ) -> ExpressionResult {
-        parse_binary_expr(
-            tokens,
-            &[Op::AddAssign, Op::SubAssign, Op::MulAssign, Op::DivAssign],
-            Self::parse_sub,
-        )
-    }
-}
-
-pub struct AddSubBinaryExpressionParser;
-impl ExpressionParserWithSubLayer for AddSubBinaryExpressionParser {
-    type SubLayer = MulDivBinaryExpressionParser;
-
-    fn parse_layered<T: Iterator<Item = TokenResult>>(
-        tokens: &mut Peekable<T>,
-    ) -> ExpressionResult {
-        parse_binary_expr(tokens, &[Op::Add, Op::Sub], Self::parse_sub)
-    }
-}
-
-pub struct MulDivBinaryExpressionParser;
-impl ExpressionParserWithSubLayer for MulDivBinaryExpressionParser {
+pub struct FunctionCallExpressionParser;
+impl ExpressionParserWithSubLayer for FunctionCallExpressionParser {
     type SubLayer = SimpleExpressionParser;
 
     fn parse_layered<T: Iterator<Item = TokenResult>>(
         tokens: &mut Peekable<T>,
     ) -> ExpressionResult {
-        parse_binary_expr(tokens, &[Op::Mul, Op::Div], Self::parse_sub)
+        let potential_func = Self::parse_sub(tokens)?;
+
+        if let Some(Ok(Token::Op(Op::ParenthesesLeft))) = tokens.peek() {
+            let _ = tokens.next().unwrap();
+            let mut args = Vec::new();
+            loop {
+                match tokens.peek() {
+                    Some(Ok(Token::Op(Op::ParenthesesRight))) => {
+                        tokens.next();
+                        break;
+                    }
+                    Some(Ok(Token::Op(Op::Comma))) => {
+                        tokens.next();
+                    }
+                    Some(Ok(_)) => {
+                        args.push(parse_expression(tokens)?);
+                    }
+                    Some(Err(err)) => return Err(err.clone()),
+                    None => return Err(LangError::UnexpectedEOF),
+                }
+            }
+            Ok(Expression::CallExpressin(CallExpression {
+                func: Box::new(potential_func),
+                args,
+            }))
+        } else {
+            Ok(potential_func)
+        }
     }
 }
 
 pub struct SimpleExpressionParser;
 impl ExpressionParser for SimpleExpressionParser {
     fn parse<T: Iterator<Item = TokenResult>>(
-        data: &mut Peekable<T>,
+        tokens: &mut Peekable<T>,
     ) -> Result<Expression, LangError> {
-        if let Some(tok) = data.next() {
-            let tok = match tok {
-                Err(tok) => return Err(tok),
-                Ok(tok) => tok,
+        if let Some(tok) = tokens.next() {
+            let tok = tok?;
+
+            let potential_closing_parenthesis = match tok {
+                Token::Op(op) => op.get_closing_parentheses(),
+                _ => None,
             };
+
             match tok {
-                Token::Op(op) => Ok(Expression::UnaryExpression(UnaryExpression {
-                    op,
-                    expr: Box::new(parse_expression(data)?),
-                })),
+                Token::Op(op) => match op {
+                    op if potential_closing_parenthesis.is_some() => {
+                        let potential_closing_parenthesis = potential_closing_parenthesis.unwrap();
+                        todo!();
+                    }
+                    op if op.can_be_unary() => Ok(Expression::UnaryExpression(UnaryExpression {
+                        op,
+                        expr: Box::new(parse_expression(tokens)?),
+                    })),
+                    op => Err(LangError::UnexpectedToken(Token::Op(op))),
+                },
                 Token::Immediate(imm) => Ok(Expression::ImmediateExpression(ImmediateExpression {
                     value: imm,
                 })),
@@ -94,12 +87,20 @@ impl ExpressionParser for SimpleExpressionParser {
                         ident,
                     }))
                 }
-                Token::Keyword(keyword) => parse_keyword(data, keyword),
+                Token::Keyword(keyword) => parse_keyword(tokens, keyword),
             }
         } else {
             Err(LangError::UnexpectedEOF)
         }
     }
+}
+
+fn parse_scope_expression<T: Iterator<Item = TokenResult>>(
+    tokens: &mut Peekable<T>,
+    consume_left_brace: bool,
+) {
+    // match token {}
+    todo!();
 }
 
 fn parse_keyword<T: Iterator<Item = TokenResult>>(
@@ -152,25 +153,25 @@ fn parse_func_decl<T: Iterator<Item = TokenResult>>(
     };
 
     match tokens.next() {
-        Some(Ok(Token::Op(Op::SquiglyParenthesisLeft))) => {}
+        Some(Ok(Token::Op(Op::SquiglyParenthesesLeft))) => {}
         Some(Ok(tok)) => {
             return Err(LangError::FunctionError(FunctionError::FunctionTokenHere {
                 got: tok,
-                should_be: Token::Op(Op::SquiglyParenthesisLeft),
+                should_be: Token::Op(Op::SquiglyParenthesesLeft),
             }));
         }
         Some(Err(err)) => return Err(err),
         None => return Err(LangError::UnexpectedEOF),
     };
-    
-    parse_expression(tokens);
+
+    parse_expression(tokens)?;
 
     match tokens.next() {
-        Some(Ok(Token::Op(Op::SquiglyParenthesisRight))) => {}
+        Some(Ok(Token::Op(Op::SquiglyParenthesesRight))) => {}
         Some(Ok(tok)) => {
             return Err(LangError::FunctionError(FunctionError::FunctionTokenHere {
                 got: tok,
-                should_be: Token::Op(Op::SquiglyParenthesisRight),
+                should_be: Token::Op(Op::SquiglyParenthesesRight),
             }));
         }
         Some(Err(err)) => return Err(err),

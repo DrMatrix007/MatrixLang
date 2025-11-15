@@ -4,7 +4,8 @@ use crate::tokens::Token;
 pub enum LangError {
     UnexpectedEOF,
     TokenError(TokenError),
-    FunctionError(FunctionError)
+    FunctionError(FunctionError),
+    UnexpectedToken(Token)
 }
 
 #[derive(Debug, Clone)]

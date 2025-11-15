@@ -47,11 +47,11 @@ pub struct CallExpression {
 
 impl Display for CallExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "CallExpr({}", self.func)?;
+        write!(f, "CallExpr({}, [", self.func)?;
         for arg in &self.args {
-            write!(f, ", {}", arg)?;
+            write!(f, "{},", arg)?;
         }
-        write!(f, ")")
+        write!(f, "])")
     }
 }
 #[derive(Debug)]
@@ -75,5 +75,24 @@ pub struct FunctionDeclerationExpression {
 impl Display for FunctionDeclerationExpression {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "FunctionDecleration({})", self.ident.name)
+    }
+}
+
+#[derive(Debug)]
+pub struct ScopeExpressions {
+    pub exprs: Vec<Expression>,
+}
+
+impl Display for ScopeExpressions {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "ScopeExprs({})",
+            self.exprs
+                .iter()
+                .map(|x| format!("{}", x))
+                .collect::<Vec<_>>()
+                .join(", ")
+        )
     }
 }

@@ -1,4 +1,4 @@
-mod binary_expression_parser;
+pub mod binary_expression_parser;
 pub mod expression_types;
 pub mod parsers;
 
@@ -6,10 +6,12 @@ use std::{fmt::Display, iter::Peekable};
 
 use crate::{
     expressions::{
-        expression_types::{
-            BinaryExpression, CallExpression, FunctionDeclerationExpression, IdentifierExpression, ImmediateExpression, UnaryExpression
+        binary_expression_parser::{
+            AssignsBinaryExpressionParser, ExpressionParser, ExpressionResult,
         },
-        parsers::{AddSubBinaryExpressionParser, AssignsBinaryExpressionParser, ExpressionParser, ExpressionResult},
+        expression_types::{
+            BinaryExpression, CallExpression, FunctionDeclerationExpression, IdentifierExpression, ImmediateExpression, ScopeExpressions, UnaryExpression
+        },
     },
     tokens::TokenResult,
 };
@@ -21,7 +23,8 @@ pub enum Expression {
     CallExpressin(CallExpression),
     ImmediateExpression(ImmediateExpression),
     IdentifierExpression(IdentifierExpression),
-    FunctionDeclerationExpression(FunctionDeclerationExpression)
+    FunctionDeclerationExpression(FunctionDeclerationExpression),
+    ScopeExpressions(ScopeExpressions),
 }
 
 impl Display for Expression {
@@ -33,6 +36,7 @@ impl Display for Expression {
             Expression::ImmediateExpression(expr) => write!(f, "{}", expr),
             Expression::IdentifierExpression(expr) => write!(f, "{}", expr),
             Expression::FunctionDeclerationExpression(expr) => write!(f, "{}", expr),
+            Expression::ScopeExpressions(expr) => write!(f, "{}", expr),
         }
     }
 }
