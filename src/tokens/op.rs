@@ -22,6 +22,7 @@ pub enum Op {
     SquiglyParenthesesRight,
 
     Comma,
+    SemiColon,
 }
 
 impl Op {
@@ -36,6 +37,24 @@ impl Op {
 
     pub fn can_be_unary(&self) -> bool {
         matches!(self, Op::Add | Op::Sub)
+    }
+
+    pub fn can_be_binary(&self) -> bool {
+        matches!(
+            self,
+            Op::Add
+                | Op::Sub
+                | Op::Mul
+                | Op::Div
+                | Op::AddAssign
+                | Op::SubAssign
+                | Op::MulAssign
+                | Op::DivAssign
+        )
+    }
+
+    pub fn len(&self) -> usize {
+        String::from(*self).len()
     }
 }
 
@@ -67,6 +86,7 @@ impl From<Op> for String {
             Op::SquiglyParenthesesRight => "}".into(),
 
             Op::Comma => ",".into(),
+            Op::SemiColon => ";".into(),
         }
     }
 }
@@ -96,6 +116,7 @@ impl TryFrom<&str> for Op {
             "}" => Ok(Op::SquiglyParenthesesRight),
 
             "," => Ok(Op::Comma),
+            ";" => Ok(Op::SemiColon),
 
             _ => Err(()),
         }

@@ -16,6 +16,21 @@ use crate::{
     tokens::{Token, TokenResult, keyword::Keyword, op::Op},
 };
 
+macro_rules! match_token {
+    ($curr: expr, $should_be: expr) => {{
+        let curr = { $curr };
+        match curr {
+            Some(Ok(tok)) if (tok == $should_be) => Ok(()),
+            Some(Ok(tok)) => Err(LangError::TokenShouldBe {
+                got: tok,
+                should_be: $should_be,
+            }),
+            Some(Err(err)) => Err(err),
+            None => Err(LangError::UnexpectedEOF),
+        }
+    }};
+}
+
 pub struct FunctionCallExpressionParser;
 impl ExpressionParserWithSubLayer for FunctionCallExpressionParser {
     type SubLayer = SimpleExpressionParser;
@@ -40,7 +55,12 @@ impl ExpressionParserWithSubLayer for FunctionCallExpressionParser {
                     Some(Ok(_)) => {
                         args.push(parse_expression(tokens)?);
                     }
-                    Some(Err(err)) => return Err(err.clone()),
+                    Some(Err(_)) => {
+                        return Err(tokens
+                            .next()
+                            .expect("already peeked")
+                            .expect_err("already peeked"));
+                    }
                     None => return Err(LangError::UnexpectedEOF),
                 }
             }
@@ -95,14 +115,6 @@ impl ExpressionParser for SimpleExpressionParser {
     }
 }
 
-fn parse_scope_expression<T: Iterator<Item = TokenResult>>(
-    tokens: &mut Peekable<T>,
-    consume_left_brace: bool,
-) {
-    // match token {}
-    todo!();
-}
-
 fn parse_keyword<T: Iterator<Item = TokenResult>>(
     tokens: &mut Peekable<T>,
     keyword: Keyword,
@@ -127,56 +139,69 @@ fn parse_func_decl<T: Iterator<Item = TokenResult>>(
         None => return Err(LangError::UnexpectedEOF),
     };
 
-    match tokens.next() {
-        Some(Ok(Token::Op(Op::ParenthesesLeft))) => {}
-        Some(Ok(tok)) => {
-            return Err(LangError::FunctionError(FunctionError::FunctionTokenHere {
-                got: tok,
-                should_be: Token::Op(Op::ParenthesesLeft),
-            }));
-        }
-        Some(Err(err)) => return Err(err),
-        None => return Err(LangError::UnexpectedEOF),
-    };
+    parse_function_args(tokens)?;
+
+    let body = parse_body_expressions(tokens)?;
+
+    Ok(FunctionDeclerationExpression {
+        ident: fn_name,
+        body,
+    })
+}
+
+fn parse_function_args<T: Iterator<Item = TokenResult>>(
+    tokens: &mut Peekable<T>,
+) -> Result<(), LangError> {
+    match_token!(tokens.next(), Token::Op(Op::ParenthesesLeft))?;
+
     // parse paremeters
 
-    match tokens.next() {
-        Some(Ok(Token::Op(Op::ParenthesesRight))) => {}
-        Some(Ok(tok)) => {
-            return Err(LangError::FunctionError(FunctionError::FunctionTokenHere {
-                got: tok,
-                should_be: Token::Op(Op::ParenthesesRight),
-            }));
-        }
-        Some(Err(err)) => return Err(err),
-        None => return Err(LangError::UnexpectedEOF),
-    };
+    match_token!(tokens.next(), Token::Op(Op::ParenthesesRight))?;
 
-    match tokens.next() {
-        Some(Ok(Token::Op(Op::SquiglyParenthesesLeft))) => {}
-        Some(Ok(tok)) => {
-            return Err(LangError::FunctionError(FunctionError::FunctionTokenHere {
-                got: tok,
-                should_be: Token::Op(Op::SquiglyParenthesesLeft),
-            }));
-        }
-        Some(Err(err)) => return Err(err),
-        None => return Err(LangError::UnexpectedEOF),
-    };
+    Ok(())
+}
 
-    parse_expression(tokens)?;
+fn parse_body_expressions<T: Iterator<Item = TokenResult>>(
+    tokens: &mut Peekable<T>,
+) -> Result<Vec<Expression>, LangError> {
+    let mut body = Vec::new();
+    match_token!(tokens.next(), Token::Op(Op::SquiglyParenthesesLeft))?;
 
-    match tokens.next() {
-        Some(Ok(Token::Op(Op::SquiglyParenthesesRight))) => {}
-        Some(Ok(tok)) => {
-            return Err(LangError::FunctionError(FunctionError::FunctionTokenHere {
-                got: tok,
-                should_be: Token::Op(Op::SquiglyParenthesesRight),
-            }));
-        }
-        Some(Err(err)) => return Err(err),
-        None => return Err(LangError::UnexpectedEOF),
-    };
+    loop {
+        match tokens.peek() {
+            Some(Ok(Token::Op(Op::SquiglyParenthesesRight))) => break,
+            Some(Ok(_)) => {
+                body.push(parse_expression(tokens)?);
+                match tokens.peek() {
+                    Some(Ok(Token::Op(Op::SquiglyParenthesesLeft))) => {
+                        tokens.next();
+                    }
+                    Some(Ok(tok)) => {
+                        return Err(LangError::TokenShouldBe {
+                            got: tok.clone(),
+                            should_be: Token::Op(Op::SquiglyParenthesesLeft),
+                        });
+                    }
+                    Some(Err(_)) => {
+                        return Err(tokens
+                            .next()
+                            .expect("already peeked")
+                            .expect_err("already peeked"));
+                    }
+                    None => return Err(LangError::UnexpectedEOF),
+                }
+            }
+            Some(Err(_)) => {
+                return Err(tokens
+                    .next()
+                    .expect("already peeked")
+                    .expect_err("already peeked"));
+            }
+            None => return Err(LangError::UnexpectedEOF),
+        };
+    }
 
-    Ok(FunctionDeclerationExpression { ident: fn_name })
+    tokens.next();
+
+    Ok(body)
 }

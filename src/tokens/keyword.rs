@@ -1,7 +1,21 @@
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Keyword {
     Fn,
     Extern,
+}
+
+impl Keyword {
+    pub fn len(&self) -> usize {
+        String::from(*self).len()
+    }
+}
+impl From<Keyword> for String {
+    fn from(val: Keyword) -> Self {
+        match val {
+            Keyword::Fn => "fn".into(),
+            Keyword::Extern => "extern".into(),
+        }
+    }
 }
 
 impl TryFrom<&str> for Keyword {

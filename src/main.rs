@@ -4,7 +4,10 @@ pub mod errors;
 pub mod expressions;
 pub mod tokens;
 pub mod code_generation;
+pub mod layers;
+
 fn main() {
+
 
     let code = include_str!("../code.mal");
 

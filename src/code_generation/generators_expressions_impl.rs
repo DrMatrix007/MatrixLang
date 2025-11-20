@@ -6,13 +6,13 @@ impl CodeGenerator for Expression {
     }
 }
 
-impl CodeGenerator for UnaryExpression {
-    fn generate<'a>(&'a self) -> super::CodeGeneratorResult<'a> {
-        match self.op {
-            Op::Add => {
+// impl CodeGenerator for UnaryExpression {
+//     fn generate<'a>(&'a self) -> super::CodeGeneratorResult<'a> {
+//         match self.op {
+//             Op::Add => {
 
-            },
-            _=> { Err(crate::errors::LangError::CantCompile(format!("{}", self))) }
-        }
-    }
-}
+//             },
+//             _=> { Err(crate::errors::LangError::CantCompile(format!("{}", self))) }
+//         }
+//     }
+// }

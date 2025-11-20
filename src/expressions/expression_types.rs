@@ -68,8 +68,8 @@ impl Display for IdentifierExpression {
 #[derive(Debug)]
 pub struct FunctionDeclerationExpression {
     pub ident: Identifier,
+    pub body: Vec<Expression>
     // pub args
-    // pub expressions
 }
 
 impl Display for FunctionDeclerationExpression {

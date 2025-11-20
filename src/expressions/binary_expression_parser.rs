@@ -2,24 +2,29 @@ use std::iter::Peekable;
 
 use crate::{
     errors::LangError,
-    expressions::{Expression, expression_types::BinaryExpression, parsers::{FunctionCallExpressionParser, SimpleExpressionParser}},
+    expressions::{
+        Expression, expression_types::BinaryExpression, parsers::FunctionCallExpressionParser,
+    },
     tokens::{Token, TokenResult, op::Op},
 };
-
 
 pub fn parse_binary_expr<T: Iterator<Item = TokenResult>>(
     tokens: &mut Peekable<T>,
     ops: &[Op],
     mut sub: impl FnMut(&mut Peekable<T>) -> ExpressionResult,
 ) -> Result<Expression, LangError> {
+    assert!(ops.iter().all(|op| op.can_be_binary()));
+    
     let left = sub(tokens)?;
     if let Some(tok) = tokens.peek() {
         let tok = match tok {
             Ok(tok) => tok,
-            Err(_) => return Err(tokens
-                .next()
-                .unwrap()
-                .expect_err("this was peeked as an error")),
+            Err(_) => {
+                return Err(tokens
+                    .next()
+                    .unwrap()
+                    .expect_err("this was peeked as an error"));
+            }
         };
 
         if let Token::Op(op) = tok {

@@ -1,13 +1,18 @@
-use std::iter::Peekable;
+use std::{
+    iter::{Enumerate, Map, Peekable},
+    str::Chars,
+};
 
 use crate::{
     errors::{LangError, TokenError},
+    layers::Layer,
     tokens::{
         identifier::Identifier,
         immediate::Immediate,
         keyword::Keyword,
         op::Op,
-        parsers::{NumberParser, OpCodeParser, TokenParser, WordParser},
+        parsers::TokenParserIter,
+        sub_parsers::{NumberParser, OpCodeParser, TokenSubParser, WordParser},
     },
 };
 
@@ -16,8 +21,23 @@ pub mod immediate;
 pub mod keyword;
 pub mod op;
 pub mod parsers;
+pub mod sub_parsers;
 
-#[derive(Debug, Clone)]
+pub struct Contexed<T> {
+    pub value: T,
+    pub pos: usize,
+}
+
+impl<T> From<(usize, T)> for Contexed<T> {
+    fn from(value: (usize, T)) -> Self {
+        Self {
+            value: value.1,
+            pos: value.0,
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Token {
     Identifier(Identifier),
     Immediate(Immediate),
@@ -25,60 +45,40 @@ pub enum Token {
     Op(Op),
 }
 
-macro_rules! match_parse {
-    ($iter:expr, $curr: expr, $($t:ident),*) => {
-        {
-            let curr = { $curr };
-            match curr {
-                $(ch if $t::is_relevant(ch) => {
-                    $t::parse($iter)
-                }),*
-
-                ch => Err(LangError::TokenError(TokenError::UnexpectedChar(ch)))
-            }
+impl Token {
+    pub fn len(&self) -> usize {
+        match self {
+            Token::Identifier(identifier) => identifier.name.len(),
+            Token::Immediate(immediate) => immediate.len(),
+            Token::Keyword(keyword) => keyword.len(),
+            Token::Op(op) => op.len(),
         }
-    };
-}
-
-pub type TokenResult = Result<Token, LangError>;
-pub struct TokenParserIter<T: Iterator<Item = char>> {
-    data: Peekable<T>,
-    finished: bool,
-}
-impl<T: Iterator<Item = char>> Iterator for TokenParserIter<T> {
-    type Item = TokenResult;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        if self.finished {
-            return None;
-        }
-        let curr = loop {
-            if let Some(curr) = self.data.peek().copied() {
-                if curr.is_whitespace() {
-                    self.data.next();
-                    continue;
-                }
-                break curr;
-            } else {
-                return None;
-            }
-        };
-
-        let token = match_parse!(&mut self.data, curr, WordParser, NumberParser, OpCodeParser);
-        if token.is_err() {
-            self.finished = true;
-        }
-
-        Some(token)
     }
 }
 
-impl<T: Iterator<Item = char>> TokenParserIter<T> {
-    pub fn new(data: T) -> Self {
-        Self {
-            data: data.peekable(),
-            finished: false,
-        }
+pub struct StringPreparer;
+
+impl<'a> Layer<&'a String, Map<Enumerate<Chars<'a>>, fn((usize, char)) -> Contexed<char>>>
+    for StringPreparer
+{
+    fn run_layer(
+        &mut self,
+        data: &'a String,
+    ) -> Map<Enumerate<Chars<'a>>, fn((usize, char)) -> Contexed<char>> {
+        data.chars().enumerate().map(Contexed::from)
+    }
+}
+
+pub struct Tokenizer;
+
+impl<'a, T: Iterator<Item = Contexed<char>>> Layer<T, TokenParserIter<T>>
+    for Tokenizer
+{
+    fn run_layer(
+        &mut self,
+        data: Enumerate<Chars<'a>>,
+    ) -> Map<Enumerate<Chars<'a>>, fn((usize, char)) -> Contexed<char>> {
+        data
     }
 }
 

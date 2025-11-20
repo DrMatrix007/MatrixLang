@@ -7,6 +7,10 @@ pub enum LangError {
     FunctionError(FunctionError),
     UnexpectedToken(Token),
     CantCompile(String),
+    TokenShouldBe {
+        should_be: Token,
+        got: Token
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -19,8 +23,4 @@ pub enum TokenError {
 #[derive(Debug, Clone)]
 pub enum FunctionError {
     FunctionNameShouldBeIdentifier(Token),
-    FunctionTokenHere {
-        should_be: Token,
-        got: Token
-    }
 }
