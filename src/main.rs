@@ -3,6 +3,7 @@ use crate::{expressions::parse_expression, tokens::parse_tokens};
 pub mod errors;
 pub mod expressions;
 pub mod tokens;
+pub mod code_generation;
 fn main() {
 
     let code = include_str!("../code.mal");

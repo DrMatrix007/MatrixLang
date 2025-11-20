@@ -16,7 +16,10 @@ pub fn parse_binary_expr<T: Iterator<Item = TokenResult>>(
     if let Some(tok) = tokens.peek() {
         let tok = match tok {
             Ok(tok) => tok,
-            Err(err) => return Err(err.clone()),
+            Err(_) => return Err(tokens
+                .next()
+                .unwrap()
+                .expect_err("this was peeked as an error")),
         };
 
         if let Token::Op(op) = tok {

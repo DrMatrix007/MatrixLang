@@ -1,11 +1,12 @@
-use crate::tokens::Token;
+use crate::{expressions::Expression, tokens::Token};
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub enum LangError {
     UnexpectedEOF,
     TokenError(TokenError),
     FunctionError(FunctionError),
-    UnexpectedToken(Token)
+    UnexpectedToken(Token),
+    CantCompile(String),
 }
 
 #[derive(Debug, Clone)]
