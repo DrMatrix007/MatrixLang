@@ -1,26 +1,27 @@
-use crate::{expressions::Expression, tokens::Token};
+use crate::{
+    tokens::{token_type::TokenType},
+};
 
 #[derive(Debug)]
-pub enum LangError {
+pub enum LangErrorKind {
     UnexpectedEOF,
     TokenError(TokenError),
     FunctionError(FunctionError),
-    UnexpectedToken(Token),
-    CantCompile(String),
+    UnexpectedToken(TokenType),
     TokenShouldBe {
-        should_be: Token,
-        got: Token
-    }
+        should_be: TokenType,
+        got: TokenType,
+    },
 }
 
 #[derive(Debug, Clone)]
 pub enum TokenError {
     UnexpectedChar(char),
-    NotValidNumber(String),
-    NotValidOp(String),
+    NotValidNumber,
+    NotValidOp,
 }
 
 #[derive(Debug, Clone)]
 pub enum FunctionError {
-    FunctionNameShouldBeIdentifier(Token),
+    FunctionNameShouldBeIdentifier(TokenType),
 }

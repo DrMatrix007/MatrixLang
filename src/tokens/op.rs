@@ -23,7 +23,10 @@ pub enum Op {
 
     Comma,
     SemiColon,
+
+    WhiteSpace,
 }
+
 
 impl Op {
     pub fn get_closing_parentheses(&self) -> Option<Op> {
@@ -52,42 +55,11 @@ impl Op {
                 | Op::DivAssign
         )
     }
-
-    pub fn len(&self) -> usize {
-        String::from(*self).len()
-    }
 }
 
 impl Display for Op {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Op({})", Into::<String>::into(*self))
-    }
-}
-
-impl From<Op> for String {
-    fn from(val: Op) -> Self {
-        match val {
-            Op::Add => "+".into(),
-            Op::Sub => "-".into(),
-            Op::Mul => "*".into(),
-            Op::Div => "/".into(),
-
-            Op::AddAssign => "+=".into(),
-            Op::SubAssign => "-=".into(),
-            Op::MulAssign => "*=".into(),
-            Op::DivAssign => "/=".into(),
-
-            Op::ParenthesesLeft => "(".into(),
-            Op::ParenthesesRight => ")".into(),
-
-            Op::SquareParenthesesLeft => "[".into(),
-            Op::SquareParenthesesRight => "]".into(),
-            Op::SquiglyParenthesesLeft => "{".into(),
-            Op::SquiglyParenthesesRight => "}".into(),
-
-            Op::Comma => ",".into(),
-            Op::SemiColon => ";".into(),
-        }
+        write!(f, "{:?}", self)
     }
 }
 
@@ -118,6 +90,7 @@ impl TryFrom<&str> for Op {
             "," => Ok(Op::Comma),
             ";" => Ok(Op::SemiColon),
 
+            " " => Ok(Op::WhiteSpace),
             _ => Err(()),
         }
     }

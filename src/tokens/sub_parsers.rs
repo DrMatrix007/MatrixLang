@@ -1,45 +1,27 @@
-use std::iter::Peekable;
-
 use unic_emoji_char::is_emoji;
 
 use crate::{
     errors::{LangError, TokenError},
     tokens::{
-        Contexed, Token, identifier::Identifier, immediate::{Immediate, Number}, keyword::Keyword, op::Op, parsers::TokenResult
+        cursor::Cursor,
+        lexer::TokenTypeResult,
+        op::Op,
+        token_type::{ImmediateType, NumberType, TokenType},
     },
 };
 
-pub trait TokenSubParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = Contexed<char>>>) -> TokenResult;
+pub trait TokenSubLexer {
+    fn parse<'a>(peeked_char: char, data: &mut Cursor<'a>) -> TokenTypeResult;
 
     fn is_relevant(c: char) -> bool;
 }
 
 pub struct WordParser;
 
-impl TokenSubParser for WordParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = Contexed<char>>>) -> TokenResult {
-        let mut string = String::new();
-
-        let mut first_index = None;
-
-        while let Some((pos, c)) = data.peek() {
-            if first_index.is_none() {
-                first_index = Some(*pos);
-            }
-            if is_ident_char(*c, false) {
-                string.push(*c);
-                data.next();
-            } else {
-                break;
-            }
-        }
-
-        let first_index = first_index.expect("there must be one peek anyway");
-        match Keyword::try_from(string.as_str()) {
-            Ok(keyword) => Ok((first_index, Token::Keyword(keyword))),
-            Err(_) => Ok((first_index, Token::Identifier(Identifier { name: string }))),
-        }
+impl TokenSubLexer for WordParser {
+    fn parse<'a>(_: char, cursor: &mut Cursor<'a>) -> TokenTypeResult {
+        cursor.advance_while(|c| is_ident_char(c, false));
+        Ok(TokenType::Identifier)
     }
 
     fn is_relevant(c: char) -> bool {
@@ -48,50 +30,34 @@ impl TokenSubParser for WordParser {
 }
 
 fn is_ident_char(c: char, start: bool) -> bool {
-    c.is_alphabetic() || c == '_' || (is_emoji(c) && c.is_ascii()) || (!start && c.is_numeric())
+    c.is_alphabetic() || c == '_' || (is_emoji(c) && !c.is_ascii()) || (!start && c.is_numeric())
 }
 
 pub struct NumberParser;
 
-impl TokenSubParser for NumberParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = Contexed<char>>>) -> TokenResult {
-        let mut num = String::new();
-        let mut is_float = false;
-
-        let mut first_pos = None;
-
-        while let Some((pos, c)) = data.next() {
-            if first_pos.is_none() {
-                first_pos = Some(pos);
+impl TokenSubLexer for NumberParser {
+    fn parse<'a>(_: char, data: &mut Cursor<'a>) -> TokenTypeResult {
+        let mut dot_counter = 0;
+        let mut is_valid = true;
+        data.advance_while(|ch| match ch {
+            '.' => {
+                dot_counter += 1;
+                true
             }
-            if Self::is_relevant(c) {
-                num.push(c);
-                if c == '.' {
-                    is_float = true;
-                }
-            } else if c.is_whitespace() {
-                break;
-            } else {
-                return Err(LangError::TokenError(TokenError::UnexpectedChar(c)));
+            ch if Self::is_relevant(ch) => true,
+            _ => {
+                is_valid = false;
+                false
             }
-        }
+        });
 
-        let first_pos = first_pos.expect("should be at least one char peeked");
-
-        Ok((
-            first_pos,
-            Token::Immediate(Immediate::Number(if is_float {
-                Number::F32(
-                    num.parse()
-                        .map_err(move |_| LangError::TokenError(TokenError::NotValidNumber(num)))?,
-                )
-            } else {
-                Number::I32(
-                    num.parse()
-                        .map_err(move |_| LangError::TokenError(TokenError::NotValidNumber(num)))?,
-                )
-            })),
-        ))
+        Ok(TokenType::Immediate(ImmediateType::Number(
+            match dot_counter {
+                0 => NumberType::I32,
+                1 => NumberType::F32,
+                _ => return Err(LangError::TokenError(TokenError::NotValidNumber)),
+            },
+        )))
     }
 
     fn is_relevant(c: char) -> bool {
@@ -101,28 +67,21 @@ impl TokenSubParser for NumberParser {
 
 pub struct OpCodeParser;
 
-impl TokenSubParser for OpCodeParser {
-    fn parse(data: &mut Peekable<impl Iterator<Item = char>>) -> TokenResult {
-        let mut string = String::new();
+impl TokenSubLexer for OpCodeParser {
+    fn parse<'a>(_: char, cursor: &mut Cursor<'a>) -> TokenTypeResult {
         let mut res = None;
 
-        while let Some(c) = data.peek().copied() {
-            if Self::is_relevant(c) {
-                string.push(c);
-                if let Ok(curr) = Op::try_from(string.as_str()) {
-                    res = Some(curr);
-                } else {
-                    break;
-                }
-                data.next();
-            } else {
-                break;
+        cursor.advance_while_inc_str(|string| match Op::try_from(string) {
+            Ok(op) => {
+                res = Some(op);
+                true
             }
-        }
+            Err(_) => false,
+        });
 
         match res {
-            Some(op) => Ok(Token::Op(op)),
-            None => Err(LangError::TokenError(TokenError::NotValidOp(string))),
+            Some(op) => Ok(TokenType::Op(op)),
+            None => Err(LangError::TokenError(TokenError::NotValidOp)),
         }
     }
 
@@ -131,6 +90,20 @@ impl TokenSubParser for OpCodeParser {
         !c.is_whitespace() && !c.is_ascii_alphanumeric()
     }
 }
+
+pub struct WhitespaceParser;
+
+impl TokenSubLexer for WhitespaceParser {
+    fn parse<'a>(_: char, data: &mut Cursor<'a>) -> TokenTypeResult {
+        data.advance_while(char::is_whitespace);
+        Ok(TokenType::Whitespace)
+    }
+
+    fn is_relevant(c: char) -> bool {
+        c.is_whitespace()
+    }
+}
+
 
 #[cfg(test)]
 mod tests {
