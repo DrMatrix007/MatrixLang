@@ -1,1 +1,3 @@
-func 4156465465465456456465 hello world dflkjasdfk54654645
+func a() {
+    print("hello world")
+}

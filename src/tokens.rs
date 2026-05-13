@@ -10,6 +10,24 @@ mod tokens_regex {
         pub static ref IDENTIFIER_RE: Regex = Regex::new(r"^[a-zA-Z][a-zA-Z0-9]*").unwrap();
         pub static ref FUNCTION_RE: Regex = Regex::new(r"^func").unwrap();
         pub static ref INTEGER_RE: Regex = Regex::new(r"^[0-9]+").unwrap();
+        pub static ref FLOAT_RE: Regex = Regex::new(r"^[0-9]+\.[0-9]+").unwrap();
+        pub static ref STRING_RE: Regex = Regex::new(r#"^"((?:[^"\\]|\\.)*)""#).unwrap();
+        pub static ref BOOLEAN_RE: Regex = Regex::new(r"^(true|false)").unwrap();
+        pub static ref PLUS_RE: Regex = Regex::new(r"^\+").unwrap();
+        pub static ref MINUS_RE: Regex = Regex::new(r"^-").unwrap();
+        pub static ref MULTIPLY_RE: Regex = Regex::new(r"^\*").unwrap();
+        pub static ref DIVIDE_RE: Regex = Regex::new(r"^/").unwrap();
+        pub static ref LPAREN_RE: Regex = Regex::new(r"^\(").unwrap();
+        pub static ref RPAREN_RE: Regex = Regex::new(r"^\)").unwrap();
+        pub static ref LBRACE_RE: Regex = Regex::new(r"^\{").unwrap();
+        pub static ref RBRACE_RE: Regex = Regex::new(r"^\}").unwrap();
+        pub static ref COMMA_RE: Regex = Regex::new(r"^,").unwrap();
+        pub static ref SEMICOLON_RE: Regex = Regex::new(r"^;").unwrap();
+        pub static ref ASSIGN_RE: Regex = Regex::new(r"^=").unwrap();
+        pub static ref IF_RE: Regex = Regex::new(r"^if").unwrap();
+        pub static ref ELSE_RE: Regex = Regex::new(r"^else").unwrap();
+        pub static ref RETURN_RE: Regex = Regex::new(r"^return").unwrap();
+        pub static ref WHITESPACE_RE: Regex = Regex::new(r"^\s+").unwrap();
     }
 }
 
@@ -18,6 +36,24 @@ pub enum MatrixTokenType {
     Function,
     Identifier,
     Integer,
+    Float,
+    String,
+    Boolean,
+    Plus,
+    Minus,
+    Multiply,
+    Divide,
+    LeftParen,
+    RightParen,
+    LeftBrace,
+    RightBrace,
+    Comma,
+    Semicolon,
+    Assign,
+    If,
+    Else,
+    Return,
+    Whitespace,
 }
 
 #[derive(Debug)]
@@ -59,7 +95,7 @@ impl<'a> Tokenizer<'a> {
     pub fn match_regex(&mut self, regex: &Regex) -> Option<&'a str> {
         if let Some(values) = regex.captures(self.chars.as_str()) {
             if values.len() > 1 {
-                panic!("regex should only match the beggining of the string once!!!");
+                panic!("regex should only match the beggining of the string once!!! values: {:?}, regex: {}", values, regex.as_str());
             }
 
             if let Some(value) = values.get(0) {
@@ -81,10 +117,28 @@ impl<'a> Tokenizer<'a> {
 
     pub fn next_token(&mut self) -> Option<MatrixToken<'a>> {
         try_tokenize_tokenizer_from_regex!(
-            self,
-            &tokens_regex::FUNCTION_RE => MatrixTokenType::Function,
-            &tokens_regex::IDENTIFIER_RE => MatrixTokenType::Identifier,
-            &tokens_regex::INTEGER_RE => MatrixTokenType::Integer
+        self,
+        &tokens_regex::FUNCTION_RE=>MatrixTokenType::Function,
+        &tokens_regex::IDENTIFIER_RE=>MatrixTokenType::Identifier,
+        &tokens_regex::INTEGER_RE=>MatrixTokenType::Integer,
+        &tokens_regex::FLOAT_RE=>MatrixTokenType::Float,
+        &tokens_regex::STRING_RE=>MatrixTokenType::String,
+        &tokens_regex::BOOLEAN_RE=>MatrixTokenType::Boolean,
+        &tokens_regex::PLUS_RE=>MatrixTokenType::Plus,
+        &tokens_regex::MINUS_RE=>MatrixTokenType::Minus,
+        &tokens_regex::MULTIPLY_RE=>MatrixTokenType::Multiply,
+        &tokens_regex::DIVIDE_RE=>MatrixTokenType::Divide,
+        &tokens_regex::LPAREN_RE=>MatrixTokenType::LeftParen,
+        &tokens_regex::RPAREN_RE=>MatrixTokenType::RightParen,
+        &tokens_regex::LBRACE_RE=>MatrixTokenType::LeftBrace,
+        &tokens_regex::RBRACE_RE=>MatrixTokenType::RightBrace,
+        &tokens_regex::COMMA_RE=>MatrixTokenType::Comma,
+        &tokens_regex::SEMICOLON_RE=>MatrixTokenType::Semicolon,
+        &tokens_regex::ASSIGN_RE=>MatrixTokenType::Assign,
+        &tokens_regex::IF_RE=>MatrixTokenType::If,
+        &tokens_regex::ELSE_RE=>MatrixTokenType::Else,
+        &tokens_regex::RETURN_RE=>MatrixTokenType::Return,
+        &tokens_regex::WHITESPACE_RE=>MatrixTokenType::Whitespace
         );
 
         let current_char = self.chars.next()?;
