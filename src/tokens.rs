@@ -36,6 +36,19 @@ pub(crate) struct Tokenizer<'a> {
     pub(crate) chars: Chars<'a>,
 }
 
+macro_rules! try_tokenize_tokenizer_from_regex {
+    ($tokenizer: expr, $regex: expr => $token: expr) => {
+        if let Some(value) = $tokenizer.match_regex($regex) {
+            return Some(MatrixToken::new($token, value));
+        }
+    };
+
+    ($tokenizer: expr, $($regex: expr => $token: expr),+ $(,)?) => {
+        $(try_tokenize_tokenizer_from_regex!($tokenizer, $regex => $token));+
+    }
+
+}
+
 impl<'a> Tokenizer<'a> {
     pub fn new(code: &'a str) -> Self {
         Self {
@@ -67,17 +80,12 @@ impl<'a> Tokenizer<'a> {
     }
 
     pub fn next_token(&mut self) -> Option<MatrixToken<'a>> {
-        if let Some(func) = self.match_regex(&tokens_regex::FUNCTION_RE) {
-            return Some(MatrixToken::new(MatrixTokenType::Function, func));
-        }
-
-        if let Some(ident) = self.match_regex(&tokens_regex::IDENTIFIER_RE) {
-            return Some(MatrixToken::new(MatrixTokenType::Identifier, ident));
-        }
-
-        if let Some(integer) = self.match_regex(&tokens_regex::INTEGER_RE) {
-            return Some(MatrixToken::new(MatrixTokenType::Integer, integer));
-        }
+        try_tokenize_tokenizer_from_regex!(
+            self,
+            &tokens_regex::FUNCTION_RE => MatrixTokenType::Function,
+            &tokens_regex::IDENTIFIER_RE => MatrixTokenType::Identifier,
+            &tokens_regex::INTEGER_RE => MatrixTokenType::Integer
+        );
 
         let current_char = self.chars.next()?;
 
