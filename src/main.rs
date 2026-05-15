@@ -1,13 +1,13 @@
-use crate::tokens::Tokenizer;
+use crate::tokens::tokenizer::Tokenizer;
 
 mod tokens;
 
-
 fn main() {
-    
     let str = include_str!("../main.mat");
 
-    let tokens = Tokenizer::new(str).collect::<Vec<_>>();
+    let tokens = Tokenizer::new(str).collect::<Result<Vec<_>, _>>().unwrap();
 
-    println!("{:?}", tokens);
+    for token in &tokens {
+        print!("{}, ", token);
+    }
 }
