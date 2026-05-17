@@ -1,16 +1,12 @@
-use std::fmt::Display;
+use crate::errors::LanguageError;
 
-use super::MatrixToken;
+use super::Token;
 
-#[derive(Debug)]
-pub enum MatrixTokenErrorType {
+#[derive(Debug, Clone, Copy)]
+pub enum TokenErrorType {
     UnexpectedChar(char),
 }
 
-#[derive(Debug)]
-pub struct MatrixTokenError {
-    pub index: usize,
-    pub error: MatrixTokenErrorType,
-}
+pub type TokenError = LanguageError<TokenErrorType>;
 
-pub type MatrixTokenResult<'a> = Result<MatrixToken<'a>, MatrixTokenError>;
+pub type TokenResult<'a> = Result<Token<'a>, TokenError>;

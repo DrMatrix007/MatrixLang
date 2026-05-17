@@ -5,9 +5,9 @@ use regex::Regex;
 
 use crate::tokens::errors;
 
-use super::MatrixToken;
+use super::Token;
 
-use super::MatrixTokenType;
+use super::TokenType;
 
 pub(crate) struct Tokenizer<'a> {
     pub(crate) chars: CharIndices<'a>,
@@ -47,8 +47,8 @@ impl<'a> Tokenizer<'a> {
     pub fn match_string(
         &mut self,
         string: &str,
-        token_type: MatrixTokenType,
-    ) -> Option<errors::MatrixTokenResult<'a>> {
+        token_type: TokenType,
+    ) -> Option<errors::TokenResult<'a>> {
         let string = self
             .chars
             .as_str()
@@ -66,7 +66,7 @@ impl<'a> Tokenizer<'a> {
         }
 
         string.map(|string| {
-            Ok(MatrixToken {
+            Ok(Token {
                 token_type,
                 data: string,
             })
@@ -76,8 +76,8 @@ impl<'a> Tokenizer<'a> {
     pub fn match_regex(
         &mut self,
         regex: &Regex,
-        token_type: MatrixTokenType,
-    ) -> Option<errors::MatrixTokenResult<'a>> {
+        token_type: TokenType,
+    ) -> Option<errors::TokenResult<'a>> {
         if let Some(values) = regex.captures(self.chars.as_str()) {
             if values.len() > 1 {
                 panic!(
@@ -96,7 +96,7 @@ impl<'a> Tokenizer<'a> {
 
                 self.skip_string(str);
 
-                return Some(Ok(MatrixToken {
+                return Some(Ok(Token {
                     token_type,
                     data: str,
                 }));
@@ -111,45 +111,43 @@ impl<'a> Tokenizer<'a> {
         }
     }
 
-    pub fn next_token(&mut self) -> Option<errors::MatrixTokenResult<'a>> {
+    pub fn next_token(&mut self) -> Option<errors::TokenResult<'a>> {
         lazy_static! {
             pub static ref IDENTIFIER_RE: Regex = Regex::new(r"^[a-zA-Z][a-zA-Z0-9]*").unwrap();
-            pub static ref FUNCTION_RE: Regex = Regex::new(r"^func").unwrap();
             pub static ref INTEGER_RE: Regex = Regex::new(r"^[0-9]+").unwrap();
-            pub static ref FLOAT_RE: Regex = Regex::new(r"^[0-9]+\.[0-9]+").unwrap();
+            pub static ref DOUBLE_RE: Regex = Regex::new(r"^[0-9]+\.[0-9]+").unwrap();
             pub static ref STRING_RE: Regex =
                 Regex::new(r#"^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')"#).unwrap();
         }
 
-        println!("current: {}", self.chars.as_str());
+        try_tokenize_tokenizer_from_string!(
+            self,
+            "func" => TokenType::Function,
+            "if" => TokenType::If,
+            "else" => TokenType::Else,
+            "return" => TokenType::Return,
+            "==" => TokenType::Equals,
+            "+" => TokenType::Add,
+            "-" => TokenType::Sub,
+            "*" => TokenType::Mul,
+            "/" => TokenType::Div,
+            "(" => TokenType::LeftParen,
+            ")" => TokenType::RightParen,
+            "{" => TokenType::LeftBrace,
+            "}" => TokenType::RightBrace,
+            "," => TokenType::Comma,
+            ";" => TokenType::Semicolon,
+            "=" => TokenType::Assign,
+        );
 
         try_tokenize_tokenizer_from_regex!(
             self,
-            &FUNCTION_RE => MatrixTokenType::Function,
-            &IDENTIFIER_RE => MatrixTokenType::Identifier,
-            &INTEGER_RE => MatrixTokenType::Integer,
-            &FLOAT_RE => MatrixTokenType::Float,
-            &STRING_RE => MatrixTokenType::String
+            &IDENTIFIER_RE => TokenType::Identifier,
+            &DOUBLE_RE => TokenType::Double,
+            &INTEGER_RE => TokenType::Integer,
+            &STRING_RE => TokenType::String
         );
-
-        try_tokenize_tokenizer_from_string!(
-            self,
-            "if" => MatrixTokenType::If,
-            "else" => MatrixTokenType::Else,
-            "return" => MatrixTokenType::Return,
-            "+" => MatrixTokenType::Plus,
-            "-" => MatrixTokenType::Minus,
-            "*" => MatrixTokenType::Multiply,
-            "/" => MatrixTokenType::Divide,
-            "(" => MatrixTokenType::LeftParen,
-            ")" => MatrixTokenType::RightParen,
-            "{" => MatrixTokenType::LeftBrace,
-            "}" => MatrixTokenType::RightBrace,
-            "," => MatrixTokenType::Comma,
-            ";" => MatrixTokenType::Semicolon,
-            "=" => MatrixTokenType::Assign
-        );
-
+        
         let (current_index, current_char) = self.chars.next()?;
 
         match current_char {
@@ -157,15 +155,15 @@ impl<'a> Tokenizer<'a> {
             _ => {}
         }
 
-        return Some(Err(errors::MatrixTokenError {
+        Some(Err(errors::TokenError {
             index: current_index,
-            error: errors::MatrixTokenErrorType::UnexpectedChar(current_char),
-        }));
+            error_type: errors::TokenErrorType::UnexpectedChar(current_char),
+        }))
     }
 }
 
 impl<'a> Iterator for Tokenizer<'a> {
-    type Item = errors::MatrixTokenResult<'a>;
+    type Item = errors::TokenResult<'a>;
 
     fn next(&mut self) -> Option<Self::Item> {
         self.next_token()
