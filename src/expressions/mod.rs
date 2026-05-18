@@ -4,19 +4,19 @@ use crate::expressions::{
     ops::{BinaryExpression, UnaryExpression},
 };
 
+pub mod errors;
 pub mod identifier;
 pub mod literals;
 pub mod ops;
 pub mod parser;
-pub mod errors;
 
 #[derive(Debug)]
-pub enum Expression<'a> {
-    DoubleLiteral(DoubleLiteral<'a>),
-    IntegerLiteral(IntegerLiteral<'a>),
-    String(StringLiteral<'a>),
-    Identifier(Identifier<'a>),
+pub enum Expression<'string> {
+    DoubleLiteral(DoubleLiteral<'string>),
+    IntegerLiteral(IntegerLiteral<'string>),
+    String(StringLiteral<'string>),
+    Identifier(Identifier<'string>),
 
-    BinaryExpression(BinaryExpression<'a>),
-    UnaryExpression(UnaryExpression<'a>),
+    BinaryExpression(BinaryExpression<'string>),
+    UnaryExpression(UnaryExpression<'string>),
 }

@@ -1,8 +1,8 @@
 #[derive(Debug)]
-pub struct IntegerLiteral<'a>(pub &'a str);
+pub struct IntegerLiteral<'string>(pub &'string str);
 
 #[derive(Debug)]
-pub struct DoubleLiteral<'a>(pub &'a str);
+pub struct DoubleLiteral<'string>(pub &'string str);
 
 #[derive(Debug)]
-pub struct StringLiteral<'a>(pub &'a str);
+pub struct StringLiteral<'string>(pub &'string str);

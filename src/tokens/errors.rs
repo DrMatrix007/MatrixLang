@@ -9,4 +9,4 @@ pub enum TokenErrorType {
 
 pub type TokenError = LanguageError<TokenErrorType>;
 
-pub type TokenResult<'a> = Result<Token<'a>, TokenError>;
+pub type TokenResult<'string> = Result<Token<'string>, TokenError>;

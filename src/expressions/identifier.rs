@@ -1,2 +1,2 @@
 #[derive(Debug)]
-pub struct Identifier<'a>(pub &'a str);
+pub struct Identifier<'string>(pub &'string str);

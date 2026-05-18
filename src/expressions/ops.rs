@@ -12,14 +12,14 @@ pub enum Op {
 }
 
 #[derive(Debug)]
-pub struct BinaryExpression<'a> {
-    pub left: Box<Expression<'a>>,
+pub struct BinaryExpression<'string> {
+    pub left: Box<Expression<'string>>,
     pub op: Op,
-    pub right: Box<Expression<'a>>,
+    pub right: Box<Expression<'string>>,
 }
 
-impl<'a> BinaryExpression<'a> {
-    pub fn new(left: Expression<'a>, op: Op, right: Expression<'a>) -> Self {
+impl<'string> BinaryExpression<'string> {
+    pub fn new(left: Expression<'string>, op: Op, right: Expression<'string>) -> Self {
         Self {
             left: Box::new(left),
             op,
@@ -29,13 +29,13 @@ impl<'a> BinaryExpression<'a> {
 }
 
 #[derive(Debug)]
-pub struct UnaryExpression<'a> {
+pub struct UnaryExpression<'string> {
     pub op: Op,
-    pub expr: Box<Expression<'a>>,
+    pub expr: Box<Expression<'string>>,
 }
 
-impl<'a> UnaryExpression<'a> {
-    pub fn new(op: Op, expr: Expression<'a>) -> Self {
+impl<'string> UnaryExpression<'string> {
+    pub fn new(op: Op, expr: Expression<'string>) -> Self {
         Self {
             op,
             expr: Box::new(expr),

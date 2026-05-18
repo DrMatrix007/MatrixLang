@@ -7,4 +7,4 @@ pub enum ExpressionErrorType {
 
 pub type ExpressionError = LanguageError<ExpressionErrorType>;
 
-pub type ExpressionResult<'a> = Result<Expression<'a>, ExpressionError>;
+pub type ExpressionResult<'string> = Result<Expression<'string>, ExpressionError>;

@@ -1,6 +1,7 @@
 use std::fmt::Display;
 
 pub mod errors;
+pub mod matrix_tokenizer;
 pub mod tokenizer;
 
 #[derive(Debug)]
@@ -37,19 +38,19 @@ impl Display for TokenType {
 }
 
 #[derive(Debug)]
-pub struct Token<'a> {
+pub struct Token<'string> {
     pub token_type: TokenType,
-    pub data: &'a str,
+    pub data: &'string str,
 }
 
-impl<'a> Display for Token<'a> {
+impl<'string> Display for Token<'string> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "Token({}, \"{}\")", self.token_type, self.data)
     }
 }
 
-impl<'a> Token<'a> {
-    pub fn new(token_type: TokenType, data: &'a str) -> Self {
+impl<'string> Token<'string> {
+    pub fn new(token_type: TokenType, data: &'string str) -> Self {
         Self { token_type, data }
     }
 }

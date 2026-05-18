@@ -1,4 +1,6 @@
-use crate::{expressions::parser::Parser, tokens::tokenizer::Tokenizer};
+use crate::{
+    expressions::parser::matrix_parser::MatrixParser, tokens::matrix_tokenizer::MatrixTokenizer,
+};
 
 pub mod errors;
 pub mod expressions;
@@ -7,9 +9,9 @@ mod tokens;
 fn main() {
     let str = include_str!("../main.mat");
 
-    let tokens = Tokenizer::new(str);
+    let tokens = MatrixTokenizer::new(str);
 
-    let expressions = Parser::new(tokens);
+    let expressions = MatrixParser::new(Box::new(tokens));
 
     let expressions = expressions.collect::<Result<Vec<_>, _>>().unwrap();
 
