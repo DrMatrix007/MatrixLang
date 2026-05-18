@@ -3,5 +3,11 @@ use crate::expressions::ops::Op;
 use std::collections::HashSet;
 
 pub struct MatrixUnaryExpressionParser {
-    ops: HashSet<Op>,
+    _ops: HashSet<Op>,
+}
+
+impl MatrixUnaryExpressionParser {
+    pub fn new(_ops: HashSet<Op>) -> Self {
+        Self { _ops }
+    }
 }
