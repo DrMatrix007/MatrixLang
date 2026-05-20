@@ -1,6 +1,6 @@
 use crate::{expressions::errors::ExpressionResult, tokens::tokenizer::Tokenizer};
 
-pub mod matrix_parser;
+mod matrix_parser;
 
 pub trait ExpressionParser {
     fn parse_next<'string>(

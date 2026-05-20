@@ -1,6 +1,7 @@
-pub mod matrix_binary_expression_parser;
-pub mod matrix_unary_expression_parser;
+pub mod binary_expression_parser;
 pub mod parsers;
+pub mod primary_expression_parser;
+pub mod unary_expression_parser;
 
 use crate::expressions::Expression;
 

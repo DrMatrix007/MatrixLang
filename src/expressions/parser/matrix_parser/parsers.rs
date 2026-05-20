@@ -1,22 +1,32 @@
 use crate::{expressions::errors::ExpressionResult, tokens::tokenizer::Tokenizer};
 
-pub trait MatrixExpressionParser {
+pub trait ExpressionParser {
     fn parse<'string>(
         &self,
         tokens: &mut impl Tokenizer<'string>,
     ) -> Option<ExpressionResult<'string>>;
 }
 
-pub trait LayeredMatrixExpressionParser {
-    fn parse<'string, 'expr_ctx>(
+pub trait LayeredExpressionParser {
+    fn parse<'string>(
         &self,
-        next: &impl MatrixExpressionParser,
+        next: &impl ExpressionParser,
         tokens: &mut impl Tokenizer<'string>,
     ) -> Option<ExpressionResult<'string>>;
+
+    #[must_use]
+    fn chain<T>(self, sub_layer: T) -> ChainedExpressionParsers<Self, T>
+    where
+        Self: Sized,
+    {
+        ChainedExpressionParsers(self, sub_layer)
+    }
 }
 
-impl<Layered: LayeredMatrixExpressionParser, Rest: MatrixExpressionParser> MatrixExpressionParser
-    for (Layered, Rest)
+pub struct ChainedExpressionParsers<A, B>(pub(self) A, pub(self) B);
+
+impl<Layered: LayeredExpressionParser, Rest: ExpressionParser> ExpressionParser
+    for ChainedExpressionParsers<Layered, Rest>
 {
     fn parse<'string>(
         &self,
